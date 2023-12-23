@@ -49,6 +49,13 @@ func cmdHelp() []string {
 
 var db *sql.DB
 
+func enableCORS(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+	if origin := req.Request.Header.Get("Origin"); origin != "" {
+		resp.AddHeader("Access-Control-Allow-Origin", origin)
+	}
+	chain.ProcessFilter(req, resp)
+}
+
 func main() {
 	var err error
 	postgresUser := os.Getenv("POST_USER")
@@ -73,6 +80,8 @@ func main() {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON).
 		To(handleTerminal))
+
+	ws.Filter(enableCORS)
 
 	restful.Add(ws)
 	log.Fatal(http.ListenAndServe(":8080", nil))
