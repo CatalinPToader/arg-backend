@@ -75,9 +75,9 @@ func main() {
 		To(handleTerminal))
 
 	cors := restful.CrossOriginResourceSharing{
-		ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept"},
-		AllowedDomains: []string{"*"},
+		AllowedDomains: []string{},
+		AllowedMethods: []string{"POST"},
 		CookiesAllowed: true,
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
