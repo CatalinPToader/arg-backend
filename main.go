@@ -31,12 +31,21 @@ type TerminalResult struct {
 	NewFolder string `json:"new_folder"`
 }
 
+type Games struct {
+	UserHashID string `json:"userHashID"`
+	DRG        bool   `json:"DRG"`
+	HFF        bool   `json:"HFF"`
+	LEFT       bool   `json:"LEFT"`
+	SOW        bool   `json:"SOW	"`
+}
+
 const (
-	userTable = "users"
-	userId    = "discord_id"
-	userHash  = "hashed_id"
-	grinchTxt = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /SantaSecrets/ and see what you can find."
-	santaTxt  = "I love my reindeers a lot,\nBut the one I love most,\nIs the one with the red nose!\n"
+	userTable  = "users"
+	gamesTable = "games"
+	userId     = "discord_id"
+	userHash   = "hashed_id"
+	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /SantaSecrets/ and see what you can find."
+	santaTxt   = "I love my reindeers a lot,\nBut the one I love most,\nIs the one with the red nose!\n"
 )
 
 func cmdList() []string {
@@ -74,6 +83,11 @@ func main() {
 		Produces(restful.MIME_JSON).
 		To(handleTerminal))
 
+	ws.Route(ws.POST("/games").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON).
+		To(handleGames))
+
 	cors := restful.CrossOriginResourceSharing{
 		AllowedHeaders: []string{"Content-Type", "Accept"},
 		AllowedDomains: []string{},
@@ -87,6 +101,10 @@ func main() {
 
 func insertUserString() string {
 	return "INSERT INTO " + userTable + "(" + userId + "," + userHash + ") VALUES ($1, $2)"
+}
+
+func insertGamesString() string {
+	return "INSERT INTO " + gamesTable + "(" + userHash + ", drg, hff, left, sow) VALUES ($1, $2, $3, $4, $5)"
 }
 
 func handleTerminal(req *restful.Request, resp *restful.Response) {
@@ -128,6 +146,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 
 	return
 }
+
 func handleUser(req *restful.Request, resp *restful.Response) {
 	byteArr, err := io.ReadAll(req.Request.Body)
 	if err != nil {
@@ -161,6 +180,29 @@ func handleUser(req *restful.Request, resp *restful.Response) {
 	_, err = resp.Write(marshalled)
 	if err != nil {
 		log.Printf("Writing user to response error %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	return
+}
+
+func handleGames(req *restful.Request, resp *restful.Response) {
+	byteArr, err := io.ReadAll(req.Request.Body)
+	if err != nil {
+		log.Fatalf("Error on reading req body %v", req)
+	}
+	var games Games
+	err = json.Unmarshal(byteArr, &games)
+	if err != nil {
+		log.Printf("Could not unmarshall games request")
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec(insertGamesString(), games.UserHashID, games.DRG, games.HFF, games.LEFT, games.SOW)
+	if err != nil {
+		log.Printf("DB error %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
