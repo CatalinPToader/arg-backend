@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful/v3"
 	_ "github.com/lib/pq"
+	"golang.org/x/exp/slices"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type User struct {
@@ -44,7 +46,7 @@ const (
 	gamesTable = "games"
 	userId     = "discord_id"
 	userHash   = "hashed_id"
-	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /SantaSecrets/ and see what you can find."
+	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /santa_secrets/ and see what you can find."
 	santaTxt   = "I love my reindeers a lot,\nBut the one I love most,\nIs the one with the red nose!\n"
 )
 
@@ -120,10 +122,10 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	if termCMD.Command == "help" {
-		cmds := cmdList()
-		helps := cmdHelp()
+	cmds := cmdList()
+	helps := cmdHelp()
 
+	if termCMD.Command == "help" {
 		var termResp TerminalResult
 
 		for c := range cmds {
@@ -142,6 +144,32 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		return
+	}
+
+	cmdParts := strings.Fields(termCMD.Command)
+	valid := slices.Contains(cmds, cmdParts[0])
+
+	if !valid {
+		var termResp TerminalResult
+
+		termResp.Message = fmt.Sprintf("Invalid command %v\n", cmdParts[0])
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else {
+		log.Printf("CMD parts %+v\n", cmdParts)
 	}
 
 	return
