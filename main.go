@@ -191,6 +191,11 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
+	if termCMD.Command == "" {
+		resp.WriteHeader(http.StatusOK)
+		return
+	}
+
 	cmdParts := strings.Fields(termCMD.Command)
 
 	switch cmdParts[0] {
