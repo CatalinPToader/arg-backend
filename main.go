@@ -258,7 +258,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			termResp.Message = "Select a folder!"
 		} else if cmdParts[1] == "~" {
 			termResp.NewFolder = cmdParts[1]
-		} else if cmdParts[1] == "/santa_secrets/" {
+		} else if cmdParts[1] == "/santa_secrets/" || cmdParts[1] == "/santa_secrets" {
 			termResp.NewFolder = cmdParts[1]
 
 			_, err = db.Exec(updateProgString(), 1, termCMD.UserHashID)
