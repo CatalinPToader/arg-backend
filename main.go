@@ -507,13 +507,13 @@ func handleSolve(req *restful.Request, resp *restful.Response) {
 		solve.Solved = false
 	} else {
 		solve.Solved = true
-	}
 
-	_, err = db.Exec(updateProgString(), 5, sol.UserHashID)
-	if err != nil {
-		log.Printf("DB error %v", err)
-		resp.WriteHeader(http.StatusInternalServerError)
-		return
+		_, err = db.Exec(updateProgString(), 5, sol.UserHashID)
+		if err != nil {
+			log.Printf("DB error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	_, err = db.Exec(insertSolveString(), sol.UserHashID, solve.Solved)
