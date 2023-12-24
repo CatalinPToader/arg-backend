@@ -24,9 +24,10 @@ type HashedUser struct {
 }
 
 type TerminalCMD struct {
-	Location string `json:"loc"`
-	Command  string `json:"cmd"`
-	User     string `json:"user"`
+	UserHashID string `json:"userHashID"`
+	Location   string `json:"loc"`
+	Command    string `json:"cmd"`
+	User       string `json:"user"`
 }
 
 type TerminalResult struct {
@@ -57,6 +58,7 @@ const (
 	userTable  = "users"
 	gamesTable = "games"
 	solveTable = "solve"
+	progTable  = "progress"
 	userId     = "discord_id"
 	userHash   = "hashed_id"
 	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /santa_secrets/ and see what you can find."
@@ -140,6 +142,10 @@ func insertGamesString() string {
 
 func insertSolveString() string {
 	return "INSERT INTO " + solveTable + "(" + userHash + ", solved) VALUES ($1, $2)"
+}
+
+func insertProgString() string {
+	return "INSERT INTO " + progTable + "(" + userHash + ", stage) VALUES ($1, $2)"
 }
 
 func handleTerminal(req *restful.Request, resp *restful.Response) {
@@ -245,6 +251,13 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			termResp.NewFolder = cmdParts[1]
 		} else if cmdParts[1] == "/santa_secrets/" {
 			termResp.NewFolder = cmdParts[1]
+
+			_, err = db.Exec(insertProgString(), termCMD.UserHashID, 1)
+			if err != nil {
+				log.Printf("DB error %v", err)
+				resp.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		} else {
 			termResp.Message = "Unknown folder " + cmdParts[1]
 		}
@@ -270,6 +283,13 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			termResp.Message = "Input a guess!"
 		} else if strings.ToLower(cmdParts[1]) == "rudolph" {
 			termResp.Message = "Found password!\nUse `login santa 1haterudolph`"
+
+			_, err = db.Exec(insertProgString(), termCMD.UserHashID, 2)
+			if err != nil {
+				log.Printf("DB error %v", err)
+				resp.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		} else {
 			if len(cmdParts) > 2 {
 				termResp.Message = "Failed to crack password, too many words!"
@@ -302,6 +322,13 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 				termResp.Message = "Successfully logged in as santa"
 				termResp.NewUser = "santa"
 				termResp.NewFolder = "~"
+
+				_, err = db.Exec(insertProgString(), termCMD.UserHashID, 3)
+				if err != nil {
+					log.Printf("DB error %v", err)
+					resp.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 			} else {
 				termResp.Message = "Wrong password!"
 			}
@@ -332,6 +359,13 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 		} else if slices.Contains(filelist, cmdParts[1]) {
 			if cmdParts[1] == "invitation.jpg" {
 				termResp.Redirect = "invitation.html"
+
+				_, err = db.Exec(insertProgString(), termCMD.UserHashID, 1)
+				if err != nil {
+					log.Printf("DB error %v", err)
+					resp.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 			} else {
 				termResp.Message = "Cannot open " + cmdParts[1] + " as image."
 			}
@@ -399,6 +433,13 @@ func handleUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
+	_, err = db.Exec(insertProgString(), userHashed.UserHashID, 0)
+	if err != nil {
+		log.Printf("DB error %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	marshalled, err := json.Marshal(userHashed)
 	if err != nil {
 		log.Printf("Could not marshall user")
@@ -457,6 +498,13 @@ func handleSolve(req *restful.Request, resp *restful.Response) {
 		solve.Solved = false
 	} else {
 		solve.Solved = true
+	}
+
+	_, err = db.Exec(insertProgString(), solve.UserHashID, 4)
+	if err != nil {
+		log.Printf("DB error %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	_, err = db.Exec(insertSolveString(), solve.UserHashID, solve.Solved)
