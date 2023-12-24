@@ -26,11 +26,14 @@ type HashedUser struct {
 type TerminalCMD struct {
 	Location string `json:"loc"`
 	Command  string `json:"cmd"`
+	User     string `json:"user"`
 }
 
 type TerminalResult struct {
 	Message   string `json:"message"`
 	NewFolder string `json:"new_folder"`
+	NewUser   string `json:"new_user"`
+	Redirect  string `json:"redirect"`
 }
 
 type Games struct {
@@ -49,6 +52,17 @@ const (
 	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /santa_secrets/ and see what you can find."
 	santaTxt   = "I love my reindeers a lot,\nBut the one I love most,\nIs the one with the red nose!\n"
 )
+
+func files(folder string, user string) []string {
+	if folder == "~" && user == "guest" {
+		return []string{"readme.txt"}
+	} else if folder == "~" && user == "santa" {
+		return []string{"invitation.jpg"}
+	} else if folder == "/santa_secrets/" {
+		return []string{"reminder.txt"}
+	}
+	return []string{}
+}
 
 func cmdList() []string {
 	return []string{"ls", "cat", "cd", "raisins_no_choco", "login", "open"}
@@ -149,9 +163,178 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 	}
 
 	cmdParts := strings.Fields(termCMD.Command)
-	valid := slices.Contains(cmds, cmdParts[0])
 
-	if !valid {
+	switch cmdParts[0] {
+	case "ls":
+		filelist := files(termCMD.Location, termCMD.User)
+		var termResp TerminalResult
+
+		termResp.Message = strings.Join(filelist, "\n")
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	case "cat":
+		filelist := files(termCMD.Location, termCMD.User)
+		var termResp TerminalResult
+
+		if len(cmdParts) < 2 {
+			termResp.Message = "Select a file!"
+		} else if slices.Contains(filelist, cmdParts[1]) {
+			if cmdParts[1] == "readme.txt" {
+				termResp.Message = grinchTxt
+			} else if cmdParts[1] == "reminder.txt" {
+				termResp.Message = santaTxt
+			} else {
+				termResp.Message = "Cannot display " + cmdParts[1] + " as text (but you maybe can yourself)"
+			}
+		} else {
+			termResp.Message = "Unknown file " + cmdParts[1]
+		}
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	case "cd":
+		var termResp TerminalResult
+
+		if len(cmdParts) < 2 {
+			termResp.Message = "Select a folder!"
+		} else if cmdParts[1] == "~" {
+			termResp.NewFolder = cmdParts[1]
+		} else if cmdParts[1] == "/santa_secrets/" {
+			termResp.NewFolder = cmdParts[1]
+		} else {
+			termResp.Message = "Unknown folder " + cmdParts[1]
+		}
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	case "raisins_no_choco":
+		var termResp TerminalResult
+
+		if len(cmdParts) < 2 {
+			termResp.Message = "Input a guess!"
+		} else if strings.ToLower(cmdParts[1]) == "rudolph" {
+			termResp.Message = "Found password!\nUse `login santa 1haterudolph`"
+		} else {
+			if len(cmdParts) > 2 {
+				termResp.Message = "Failed to crack password, too many words!"
+			} else {
+				termResp.Message = "Failed to crack password!"
+			}
+		}
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	case "login":
+		var termResp TerminalResult
+
+		if len(cmdParts) < 3 {
+			termResp.Message = "Need an user and a password!"
+		} else if cmdParts[1] == "santa" {
+			if cmdParts[2] == "1haterudolph" {
+				termResp.Message = "Successfully logged in as santa"
+				termResp.NewUser = "santa"
+				termResp.NewFolder = "~"
+			} else {
+				termResp.Message = "Wrong password!"
+			}
+		} else {
+			termResp.Message = "Cannot login as " + cmdParts[1]
+		}
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	case "open":
+		filelist := files(termCMD.Location, termCMD.User)
+		var termResp TerminalResult
+
+		if len(cmdParts) < 2 {
+			termResp.Message = "Select a file!"
+		} else if slices.Contains(filelist, cmdParts[1]) {
+			if cmdParts[1] == "invitation.jpg" {
+				termResp.Redirect = "invitation.html"
+			} else {
+				termResp.Message = "Cannot open " + cmdParts[1] + " as image."
+			}
+		} else {
+			termResp.Message = "Unknown file " + cmdParts[1]
+		}
+
+		marshalled, err := json.Marshal(termResp)
+		if err != nil {
+			log.Printf("Could not marshall terminal response")
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, err = resp.Write(marshalled)
+		if err != nil {
+			log.Printf("Writing user to response error %v", err)
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		break
+	default:
 		var termResp TerminalResult
 
 		termResp.Message = fmt.Sprintf("Invalid command %v\n", cmdParts[0])
@@ -168,8 +351,6 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else {
-		log.Printf("CMD parts %+v\n", cmdParts)
 	}
 
 	return
