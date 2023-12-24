@@ -61,7 +61,7 @@ const (
 	progTable  = "progress"
 	userId     = "discord_id"
 	userHash   = "hashed_id"
-	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /santa_secrets/ and see what you can find."
+	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into `/santa_secrets/` and see what you can find."
 	santaTxt   = "I love my reindeers a lot,\nBut the one I love most,\nIs the one with the red nose!\n"
 )
 
