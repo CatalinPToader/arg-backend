@@ -55,6 +55,7 @@ type Solve struct {
 const (
 	userTable  = "users"
 	gamesTable = "games"
+	solveTable = "solve"
 	userId     = "discord_id"
 	userHash   = "hashed_id"
 	grinchTxt  = "Grinch here,\nGot a new idea for stopping Christmas, just hack into Santa's computer.\nTurns out instead of hashing & salting his passwords, he turns them \ninto cookies then adds milk.\n\nI uploaded a small program that can find his password, you just need to\ngive it one word from the password and it will find the rest.\nTo run it just type `raisins_no_choco <guess>`.\n\nYou should look into /santa_secrets/ and see what you can find."
@@ -134,6 +135,10 @@ func insertUserString() string {
 
 func insertGamesString() string {
 	return "INSERT INTO " + gamesTable + "(" + userHash + ", drg, hff, lft, sow) VALUES ($1, $2, $3, $4, $5)"
+}
+
+func insertSolveString() string {
+	return "INSERT INTO " + solveTable + "(" + userHash + ", solved) VALUES ($1, $2)"
 }
 
 func handleTerminal(req *restful.Request, resp *restful.Response) {
@@ -451,6 +456,13 @@ func handleSolve(req *restful.Request, resp *restful.Response) {
 		solve.Solved = false
 	} else {
 		solve.Solved = true
+	}
+
+	_, err = db.Exec(insertSolveString(), solve.Solved)
+	if err != nil {
+		log.Printf("DB error %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	marshalled, err := json.Marshal(solve)
