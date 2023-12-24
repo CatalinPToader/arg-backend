@@ -148,6 +148,10 @@ func insertProgString() string {
 	return "INSERT INTO " + progTable + "(" + userHash + ", stage) VALUES ($1, $2)"
 }
 
+func updateProgString() string {
+	return "UPDATE " + progTable + " set stage = $1 where " + userHash + " = $2"
+}
+
 func handleTerminal(req *restful.Request, resp *restful.Response) {
 	byteArr, err := io.ReadAll(req.Request.Body)
 	if err != nil {
@@ -252,7 +256,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 		} else if cmdParts[1] == "/santa_secrets/" {
 			termResp.NewFolder = cmdParts[1]
 
-			_, err = db.Exec(insertProgString(), termCMD.UserHashID, 1)
+			_, err = db.Exec(updateProgString(), 1, termCMD.UserHashID)
 			if err != nil {
 				log.Printf("DB error %v", err)
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -284,7 +288,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 		} else if strings.ToLower(cmdParts[1]) == "rudolph" {
 			termResp.Message = "Found password!\nUse `login santa 1haterudolph`"
 
-			_, err = db.Exec(insertProgString(), termCMD.UserHashID, 2)
+			_, err = db.Exec(updateProgString(), 2, termCMD.UserHashID)
 			if err != nil {
 				log.Printf("DB error %v", err)
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -323,7 +327,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 				termResp.NewUser = "santa"
 				termResp.NewFolder = "~"
 
-				_, err = db.Exec(insertProgString(), termCMD.UserHashID, 3)
+				_, err = db.Exec(updateProgString(), 3, termCMD.UserHashID)
 				if err != nil {
 					log.Printf("DB error %v", err)
 					resp.WriteHeader(http.StatusInternalServerError)
@@ -360,7 +364,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			if cmdParts[1] == "invitation.jpg" {
 				termResp.Redirect = "invitation.html"
 
-				_, err = db.Exec(insertProgString(), termCMD.UserHashID, 1)
+				_, err = db.Exec(updateProgString(), 4, termCMD.UserHashID)
 				if err != nil {
 					log.Printf("DB error %v", err)
 					resp.WriteHeader(http.StatusInternalServerError)
