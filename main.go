@@ -46,12 +46,12 @@ type Games struct {
 }
 
 type Solution struct {
-	Solution string `json:"solution"`
+	UserHashID string `json:"userHashID"`
+	Solution   string `json:"solution"`
 }
 
 type Solve struct {
-	UserHashID string `json:"userHashID"`
-	Solved     bool   `json:"solved"`
+	Solved bool `json:"solved"`
 }
 
 const (
@@ -504,16 +504,14 @@ func handleSolve(req *restful.Request, resp *restful.Response) {
 		solve.Solved = true
 	}
 
-	_, err = db.Exec(updateProgString(), 4, solve.UserHashID)
+	_, err = db.Exec(updateProgString(), 5, sol.UserHashID)
 	if err != nil {
 		log.Printf("DB error %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Solve %+v", solve)
-
-	_, err = db.Exec(insertSolveString(), solve.UserHashID, solve.Solved)
+	_, err = db.Exec(insertSolveString(), sol.UserHashID, solve.Solved)
 	if err != nil {
 		log.Printf("DB error %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
