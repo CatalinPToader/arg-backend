@@ -197,7 +197,7 @@ func handleTerminal(req *restful.Request, resp *restful.Response) {
 			} else if cmdParts[1] == "reminder.txt" {
 				termResp.Message = santaTxt
 			} else {
-				termResp.Message = "Cannot display " + cmdParts[1] + " as text (but you maybe can yourself)"
+				termResp.Message = "Cannot display " + cmdParts[1] + " as text (but you could do it yourself)"
 			}
 		} else {
 			termResp.Message = "Unknown file " + cmdParts[1]
