@@ -49,7 +49,8 @@ type Solution struct {
 }
 
 type Solve struct {
-	Solved bool `json:"solved"`
+	Solved     bool   `json:"solved"`
+	UserHashID string `json:"userHashID"`
 }
 
 const (
@@ -458,7 +459,7 @@ func handleSolve(req *restful.Request, resp *restful.Response) {
 		solve.Solved = true
 	}
 
-	_, err = db.Exec(insertSolveString(), solve.Solved)
+	_, err = db.Exec(insertSolveString(), solve.UserHashID, solve.Solved)
 	if err != nil {
 		log.Printf("DB error %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
