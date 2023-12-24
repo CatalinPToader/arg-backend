@@ -41,7 +41,15 @@ type Games struct {
 	DRG        bool   `json:"DRG"`
 	HFF        bool   `json:"HFF"`
 	LEFT       bool   `json:"LEFT"`
-	SOW        bool   `json:"SOW	"`
+	SOW        bool   `json:"SOW"`
+}
+
+type Solution struct {
+	Solution string `json:"solution"`
+}
+
+type Solve struct {
+	Solved bool `json:"solved"`
 }
 
 const (
@@ -104,6 +112,11 @@ func main() {
 		Produces(restful.MIME_JSON).
 		To(handleGames))
 
+	ws.Route(ws.POST("/solve").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON).
+		To(handleSolve))
+
 	cors := restful.CrossOriginResourceSharing{
 		AllowedHeaders: []string{"Content-Type", "Accept"},
 		AllowedDomains: []string{},
@@ -120,7 +133,7 @@ func insertUserString() string {
 }
 
 func insertGamesString() string {
-	return "INSERT INTO " + gamesTable + "(" + userHash + ", drg, hff, left, sow) VALUES ($1, $2, $3, $4, $5)"
+	return "INSERT INTO " + gamesTable + "(" + userHash + ", drg, hff, lft, sow) VALUES ($1, $2, $3, $4, $5)"
 }
 
 func handleTerminal(req *restful.Request, resp *restful.Response) {
@@ -412,6 +425,43 @@ func handleGames(req *restful.Request, resp *restful.Response) {
 	_, err = db.Exec(insertGamesString(), games.UserHashID, games.DRG, games.HFF, games.LEFT, games.SOW)
 	if err != nil {
 		log.Printf("DB error %v", err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	return
+}
+
+func handleSolve(req *restful.Request, resp *restful.Response) {
+	byteArr, err := io.ReadAll(req.Request.Body)
+	if err != nil {
+		log.Fatalf("Error on reading req body %v", req)
+	}
+	var sol Solution
+	err = json.Unmarshal(byteArr, &sol)
+	if err != nil {
+		log.Printf("Could not unmarshall games request")
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var solve Solve
+
+	if strings.ToLower(sol.Solution) != "warmth" {
+		solve.Solved = false
+	} else {
+		solve.Solved = true
+	}
+
+	marshalled, err := json.Marshal(solve)
+	if err != nil {
+		log.Printf("Could not marshall user")
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, err = resp.Write(marshalled)
+	if err != nil {
+		log.Printf("Writing user to response error %v", err)
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
